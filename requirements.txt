@@ -1,0 +1,15 @@
+#ipykernel
+#ipywidgets
+#PyMuPDF
+#chromadb
+#sentence-transformers
+python-dotenv
+langchain
+langchain_community
+Flask
+gunicorn # heroku
+openai
+llama-index
+weaviate-client 
+llama-index-vector-stores-weaviate
+Babel
