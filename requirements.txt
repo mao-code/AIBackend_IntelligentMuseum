@@ -10,6 +10,6 @@ Flask
 gunicorn # heroku
 openai
 llama-index
-weaviate-client 
+weaviate-client
 llama-index-vector-stores-weaviate
 Babel

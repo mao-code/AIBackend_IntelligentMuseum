@@ -1,0 +1,11 @@
+version: '3.10'
+
+services:
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      # key env variable add separatly

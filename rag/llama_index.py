@@ -7,6 +7,8 @@ from llama_index.core import SimpleDirectoryReader
 from llama_index.core.node_parser import SimpleNodeParser
 
 import weaviate
+from weaviate.connect import ConnectionParams
+
 from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
 from llama_index.vector_stores.weaviate import WeaviateVectorStore
 import os
@@ -29,9 +31,14 @@ class LLaMAIndexRAG(RAGInterface):
         nodes = node_parser.get_nodes_from_documents(documents)
 
         # Build Index (VectorDB)
-        client = weaviate.Client(
-            embedded_options=weaviate.embedded.EmbeddedOptions(), 
+        client = weaviate.connect_to_wcs(
+            cluster_url=os.getenv("WCS_URL"),
+            auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WCS_API_KEY")),
+            headers={
+                "X-OpenAI-Api-Key": os.getenv("OPENAI_API_KEY")
+            }
         )
+
         # Construct vector store
         index_name = "Museum_index"
         vector_store = WeaviateVectorStore(
