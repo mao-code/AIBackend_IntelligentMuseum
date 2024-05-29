@@ -5,12 +5,13 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Copy only the necessary files
-COPY main.py ./
-COPY app ./app
-COPY rag ./rag
-COPY assets ./assets
-COPY store ./store
-COPY requirements.txt ./
+# COPY main.py ./
+# COPY app ./app
+# COPY rag ./rag
+# COPY assets ./assets
+# COPY store ./store
+# COPY requirements.txt ./
+COPY . .
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
@@ -23,7 +24,7 @@ CMD ["python", "main.py"]
 
 # COMMAND
 # docker build -t aibackend .
-# docker run --name aibackend -d -p 5001:5001 aibackend
+# ** docker run --name aibackend -d -p 5001:5001 aibackend
 # env var: docker run --name aibackend -p 5001:5001 -e VAR_NAME=value aibackend
 # volume: docker run --name aibackend -p 5001:5001 -v /host/path:/container/path aibackend
 
