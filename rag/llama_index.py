@@ -20,13 +20,23 @@ class LLaMAIndexRAG(RAGInterface):
         Settings.embed_model = OpenAIEmbedding() 
         
         # Load data
+        filename_fn = lambda filename: {
+            "file_name": filename,
+            "dynasty": filename.split("_")[0],
+            "weapon_type": filename.split("_")[1],
+            "title": filename.split("_")[2],
+        }
         documents = SimpleDirectoryReader(
             input_dir="assets",
+            file_metadata=filename_fn,
             recursive=True,
         ).load_data() 
 
         # Chunk the documents
-        node_parser = SimpleNodeParser.from_defaults(chunk_size=1024)
+        node_parser = SimpleNodeParser.from_defaults(
+            chunk_size=512, 
+            chunk_overlap=128
+        )
         # Extract nodes from documents
         nodes = node_parser.get_nodes_from_documents(documents)
 

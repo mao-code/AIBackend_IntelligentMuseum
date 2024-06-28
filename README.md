@@ -22,6 +22,8 @@
 * [Basic RAG](https://medium.com/@cch.chichieh/rag%E5%AF%A6%E4%BD%9C%E6%95%99%E5%AD%B8-langchain-llama2-%E5%89%B5%E9%80%A0%E4%BD%A0%E7%9A%84%E5%80%8B%E4%BA%BAllm-d6838febf8c4)
 * [Google Cloud Translate API](https://cloud.google.com/translate/docs/reference/rest/v2/translate)
 * [Advanced RAG](https://towardsdatascience.com/advanced-retrieval-augmented-generation-from-theory-to-llamaindex-implementation-4de1464a9930)
+* [Question Answering in RAG using Llama-Index: Part 1](https://medium.com/@aneesha161994/question-answering-in-rag-using-llama-index-92cfc0b4dae3)
+* [Extracting Metadata for Better Document Indexing and Understanding](https://docs.llamaindex.ai/en/stable/examples/metadata_extraction/MetadataExtractionSEC/)
 ```
 
 CAP

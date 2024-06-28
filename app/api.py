@@ -86,7 +86,7 @@ def npc_ask():
     background = role_features.get("background", "")
     
     # Apply the role features to the query
-    chi_query = f"你現在是一個{npc_role}({background})。你的語調{tone}，且回答方式{style}。請回答以下問題："+chi_query
+    chi_query = f"你現在是'{npc_role}'({background})。你的語調{tone}，且回答方式{style}。請回答以下問題："+chi_query
 
     rag = LLaMAIndexRAG()
     response = rag.generate_response_with_retrieval(chi_query)
