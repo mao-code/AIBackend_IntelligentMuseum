@@ -19,6 +19,7 @@ api = Blueprint('api', __name__)
 with open('npc_role_config.json', 'r') as f:
     roles_config = json.load(f)
 
+# AI助理
 @api.route('/generate', methods=['POST'])
 def generate():
     """
@@ -44,11 +45,29 @@ def generate():
         return jsonify({
             'error': 'Error in your language code. Please use a valid language code.'
         })
-    chi_query += f"。請用{lang_chinese_name}回答"
+    # chi_query += f"。請用{lang_chinese_name}回答"
+
+    # 預設AI助理使用博物館導覽員
+    role = '博物館導覽員'
+    role_features = roles_config.get(role, {})
+    tone = role_features.get("tone", "中立")
+    style = role_features.get("style", "正常")
+    background = role_features.get("background", "")
+    dynasty = role_features.get("dynasty", "現代")
+
+    query_info = {
+        'query': chi_query,
+        'target_lang': lang_chinese_name,
+        'role': role,
+        'dynasty': dynasty,
+        'background': background,
+        'tone': tone,
+        'style': style
+    }
 
     ########## LLaMA Index RAG ##########
     rag = LLaMAIndexRAG()
-    response = rag.generate_response_with_retrieval(chi_query)
+    response = rag.generate_response_with_retrieval(query_info)
     response_text, metadata = response.response, response.metadata
 
     # Google translate doesn't work well for specific terms
@@ -77,19 +96,32 @@ def npc_ask():
         return jsonify({
             'error': 'Error in your language code. Please use a valid language code.'
         })
-    chi_query += f"。請用{lang_chinese_name}回答"
+    # chi_query += f"。請用'{lang_chinese_name}'回答"
 
     # Get the role features
     role_features = roles_config.get(npc_role, {})
     tone = role_features.get("tone", "中立")
     style = role_features.get("style", "正常")
     background = role_features.get("background", "")
+    dynasty = role_features.get("dynasty", "現代")
     
     # Apply the role features to the query
-    chi_query = f"你現在是'{npc_role}'({background})。你的語調{tone}，且回答方式{style}。請回答以下問題："+chi_query
+    # 讓NPC query內多加一點NPC的資訊，這樣retrive document會更準確（和prompt template無關）
+    # 這邊的資訊要和document相關，例如朝代
+    chi_query = f"({npc_role}-{dynasty})"+chi_query
+
+    query_info = {
+        'query': chi_query,
+        'target_lang': lang_chinese_name,
+        'role': npc_role,
+        'dynasty': dynasty,
+        'background': background,
+        'tone': tone,
+        'style': style
+    }
 
     rag = LLaMAIndexRAG()
-    response = rag.generate_response_with_retrieval(chi_query)
+    response = rag.generate_response_with_retrieval(query_info)
     response_text, metadata = response.response, response.metadata
 
     return jsonify({

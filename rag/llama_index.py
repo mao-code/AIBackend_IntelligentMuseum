@@ -11,6 +11,12 @@ from weaviate.connect import ConnectionParams
 
 from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
 from llama_index.vector_stores.weaviate import WeaviateVectorStore
+
+from llama_index.core.retrievers import VectorIndexRetriever
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.postprocessor import SimilarityPostprocessor
+from llama_index.core import get_response_synthesizer, PromptTemplate
+
 import os
 
 class LLaMAIndexRAG(RAGInterface):
@@ -22,10 +28,12 @@ class LLaMAIndexRAG(RAGInterface):
         # Load data
         filename_fn = lambda filename: {
             "file_name": filename,
-            "dynasty": filename.split("_")[0],
-            "weapon_type": filename.split("_")[1],
-            "title": filename.split("_")[2],
+            "dynasty": filename.split("/")[-1].split("_")[0],
+            "weapon_type": filename.split("/")[-1].split("_")[1],
+            "title": filename.split("/")[-1].split("_")[2].replace(".txt", ""),
         }
+
+        ########### INDEXING ###########
         documents = SimpleDirectoryReader(
             input_dir="assets",
             file_metadata=filename_fn,
@@ -68,17 +76,96 @@ class LLaMAIndexRAG(RAGInterface):
             nodes,
             storage_context = storage_context,
         )
+        ######################
 
         # The QueryEngine class is equipped with the generator
         # and facilitates the retrieval and generation steps
         assert index is not None
-        self.query_engine = index.as_query_engine()
+        # self.query_engine = index.as_query_engine()
+
+        # configure retriever
+        retriever = VectorIndexRetriever(
+            index=index,
+            similarity_top_k=5,
+        )
+        
+        # configure response synthesizer
+        response_synthesizer = get_response_synthesizer(
+            response_mode="refine"
+        )
+        
+        # assemble query engine
+        self.query_engine = RetrieverQueryEngine(
+            retriever=retriever,
+            response_synthesizer=response_synthesizer,
+            node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)],
+        )
+
+        # 這個search engine有兩個prompt template(因為設定成refine mode)
+        # 現在修改refine template成中文
+        refine_prompt_str = (
+            "原始問題如下：{query_str}\n"
+            "我們提供了一個現有的答案：{existing_answer}\n"
+            "我們有機會使用下面的更多上下文來改進現有的答案（僅在需要時）。\n"
+            "------------\n"
+            "{context_msg}\n"
+            "------------\n"
+            "根據新的上下文，改進原始答案以更好地回答問題。如果上下文沒有幫助，請返回原始答案。\n"
+            "改進後的答案："
+        )
+        refine_prompt_tmpl = PromptTemplate(refine_prompt_str)
+        self.query_engine.update_prompts(
+            {
+                "response_synthesizer:refine_template": refine_prompt_tmpl
+            }
+        )
 
     def generate_response(self, question):
         pass
     
-    def generate_response_with_retrieval(self, question):
-        response = self.query_engine.query(question)
+    def generate_response_with_retrieval(self, query_info):
+        # define prompt viewing function
+        # def display_prompt_dict(prompts_dict):
+        #     for k, p in prompts_dict.items():
+        #         text_md = f"**Prompt Key**: {k}<br>" f"**Text:** <br>"
+        #         print(text_md)
+        #         print(p.get_template())
+        #         print("\n")
+                
+        # decode thw question dictionary and input the variable
+        # NOTE: we can add an extra variable here
+        qa_prompt_str = (
+            "以下是上下文信息。\n"
+            "---------------------\n"
+            "{context_str}\n"
+            "---------------------\n"
+
+            "根據以上信息，請回答以下問題\n"
+            "如果答案不在以上信息中，請不要回答。\n"
+
+            "問題：{query_str}\n"
+
+            f"請用'{query_info['target_lang']}'回答\n"
+            f"你的身份是：{query_info['role']}\n"
+            f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
+            f"你的背景是：{query_info['background']}\n"
+            f"你回覆的語調：{query_info['tone']}\n"
+            f"你的回覆風格：{query_info['style']}\n"
+
+            "答案："
+        )
+        qa_prompt_tmpl = PromptTemplate(qa_prompt_str)
+        self.query_engine.update_prompts(
+            {
+                "response_synthesizer:text_qa_template": qa_prompt_tmpl
+            }
+        )
+
+        # prompts_dict = self.query_engine.get_prompts()
+        # display_prompt_dict(prompts_dict)
+
+        response = self.query_engine.query(query_info['query'])
         # print("Response: ", response.response)
         # print("Metadata: ", response.metadata)
+
         return response
