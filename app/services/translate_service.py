@@ -9,6 +9,19 @@ class Translate:
         self.google_api_key = os.getenv('GOOGLE_API_KEY')
         self.api_base = "https://translation.googleapis.com/language/translate/v2"
 
+    def detect_language(self, text):
+        """Detects the text's language."""
+        # use the nmt model to translate for free 500K characters per month
+        url = f"https://translation.googleapis.com/language/translate/v2/detect?key={self.google_api_key}"
+        response = requests.post(url, data={
+            "q": text
+        })
+
+        data = response.json()
+        detect_lang = data["data"]["detections"][0][0]["language"]
+
+        return detect_lang
+
     def translate(self, text, target_language):
         # use the nmt model to translate for free 500K characters per month
         url = f"{self.api_base}?q={text}&target={target_language}&model=nmt&key={self.google_api_key}"

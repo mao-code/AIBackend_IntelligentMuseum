@@ -57,6 +57,7 @@ def generate():
 
     query_info = {
         'query': chi_query,
+        'target_lang_code': lang,
         'target_lang': lang_chinese_name,
         'role': role,
         'dynasty': dynasty,
@@ -112,6 +113,7 @@ def npc_ask():
 
     query_info = {
         'query': chi_query,
+        'target_lang_code': lang,
         'target_lang': lang_chinese_name,
         'role': npc_role,
         'dynasty': dynasty,

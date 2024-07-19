@@ -19,6 +19,8 @@ from llama_index.core import get_response_synthesizer, PromptTemplate
 
 import os
 
+from app.services.translate_service import Translate
+
 class LLaMAIndexRAG(RAGInterface):
     def __init__(self):
         super().__init__()
@@ -101,25 +103,6 @@ class LLaMAIndexRAG(RAGInterface):
             node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)],
         )
 
-        # 這個search engine有兩個prompt template(因為設定成refine mode)
-        # 現在修改refine template成中文
-        refine_prompt_str = (
-            "原始問題如下：{query_str}\n"
-            "我們提供了一個現有的答案：{existing_answer}\n"
-            "我們有機會使用下面的更多上下文來改進現有的答案（僅在需要時）。\n"
-            "------------\n"
-            "{context_msg}\n"
-            "------------\n"
-            "根據新的上下文，改進原始答案以更好地回答問題。如果上下文沒有幫助，請返回原始答案。\n"
-            "改進後的答案："
-        )
-        refine_prompt_tmpl = PromptTemplate(refine_prompt_str)
-        self.query_engine.update_prompts(
-            {
-                "response_synthesizer:refine_template": refine_prompt_tmpl
-            }
-        )
-
     def generate_response(self, question):
         pass
     
@@ -145,19 +128,42 @@ class LLaMAIndexRAG(RAGInterface):
 
             "問題：{query_str}\n"
 
-            f"請用'{query_info['target_lang']}'回答\n"
-            f"你的身份是：{query_info['role']}\n"
+            f"你現在的身份是：{query_info['role']}\n"
             f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
-            f"你的背景是：{query_info['background']}\n"
-            f"你回覆的語調：{query_info['tone']}\n"
-            f"你的回覆風格：{query_info['style']}\n"
+            f"你的背景資訊是：{query_info['background']}\n"
+            f"你回覆的語調是：{query_info['tone']}\n"
+            f"你的回覆風格是：{query_info['style']}\n"
+            # f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
 
-            "答案："
+            "回答："
         )
         qa_prompt_tmpl = PromptTemplate(qa_prompt_str)
         self.query_engine.update_prompts(
             {
                 "response_synthesizer:text_qa_template": qa_prompt_tmpl
+            }
+        )
+
+        # 這個search engine有兩個prompt template(因為設定成refine mode)
+        # 現在修改refine template成中文
+        # 翻譯的動作放在這裡
+        refine_prompt_str = (
+            "原始問題如下：{query_str}\n"
+            "我們提供了一個現有的答案：{existing_answer}\n"
+            "我們有機會使用下面的更多上下文來改進現有的答案（僅在需要時）。\n"
+            "------------\n"
+            "{context_msg}\n"
+            "------------\n"
+            "根據新的上下文，改進原始答案以更好地回答問題。如果上下文沒有幫助，請返回原始答案。\n"
+
+            f"務必將你的回答翻譯成'{query_info['target_lang']}'\n"
+
+            "改進後的回答："
+        )
+        refine_prompt_tmpl = PromptTemplate(refine_prompt_str)
+        self.query_engine.update_prompts(
+            {
+                "response_synthesizer:refine_template": refine_prompt_tmpl
             }
         )
 
@@ -167,5 +173,10 @@ class LLaMAIndexRAG(RAGInterface):
         response = self.query_engine.query(query_info['query'])
         # print("Response: ", response.response)
         # print("Metadata: ", response.metadata)
+
+        translator = Translate()
+        # if the response is stil not the target language, translate using google translate
+        if translator.detect_language(response.response) != query_info['target_lang_code']:
+            response.response = translator.translate(response.response, query_info['target_lang_code'])
 
         return response
