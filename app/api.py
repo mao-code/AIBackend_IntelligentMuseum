@@ -12,6 +12,7 @@ from rag.langchain import LangChainRAG
 from app.services.translate_service import Translate
 
 import json
+import time
 
 api = Blueprint('api', __name__)
 
@@ -67,9 +68,16 @@ def generate():
     }
 
     ########## LLaMA Index RAG ##########
+    # Start timing before the API call
+    start_time = time.time()
+
     rag = LLaMAIndexRAG()
     response = rag.generate_response_with_retrieval(query_info)
     response_text, metadata = response.response, response.metadata
+
+    # End timing after the API call
+    end_time = time.time()
+    total_time = end_time - start_time
 
     # Google translate doesn't work well for specific terms
     # translator = Translate()
@@ -78,7 +86,8 @@ def generate():
     return jsonify({
         'parsed_query': chi_query,
         'response': response_text,
-        'metadata': metadata
+        'metadata': metadata,
+        'RAG_response_time': total_time
     })
 
 @api.route('/npc/ask', methods=['POST'])
@@ -122,14 +131,24 @@ def npc_ask():
         'style': style
     }
 
+
+    # Start timing before the API call
+    start_time = time.time()
+
     rag = LLaMAIndexRAG()
     response = rag.generate_response_with_retrieval(query_info)
     response_text, metadata = response.response, response.metadata
 
+    # End timing after the API call
+    end_time = time.time()
+    total_time = end_time - start_time
+
+
     return jsonify({
         'parsed_query': chi_query,
         'response': response_text,
-        'metadata': metadata
+        'metadata': metadata,
+        'RAG_response_time': total_time
     })
 
 

@@ -21,6 +21,8 @@ import os
 
 from app.services.translate_service import Translate
 
+import time
+
 class LLaMAIndexRAG(RAGInterface):
     def __init__(self):
         super().__init__()
@@ -88,12 +90,13 @@ class LLaMAIndexRAG(RAGInterface):
         # configure retriever
         retriever = VectorIndexRetriever(
             index=index,
-            similarity_top_k=5,
+            similarity_top_k=3,
         )
         
         # configure response synthesizer
         response_synthesizer = get_response_synthesizer(
-            response_mode="refine"
+            # response_mode="refine"
+            response_mode="compact" # less LLM calls
         )
         
         # assemble query engine
@@ -170,9 +173,34 @@ class LLaMAIndexRAG(RAGInterface):
         # prompts_dict = self.query_engine.get_prompts()
         # display_prompt_dict(prompts_dict)
 
-        response = self.query_engine.query(query_info['query'])
+        # response = self.query_engine.query(query_info['query'])
         # print("Response: ", response.response)
         # print("Metadata: ", response.metadata)
+
+        ##### TIME ANALYSIS #####
+        # Start total timing
+        total_start_time = time.time()
+
+        # Timing retrieval
+        retrieval_start_time = time.time()
+        retrieved_nodes = self.query_engine.retriever.retrieve(query_info['query'])
+        retrieval_end_time = time.time()
+        print(f"Retrieval time: {retrieval_end_time - retrieval_start_time:.2f} seconds")
+
+        # Timing response synthesis
+        synthesis_start_time = time.time()
+        response = self.query_engine._response_synthesizer.synthesize(
+            query=query_info['query'],
+            nodes=retrieved_nodes
+        )
+        synthesis_end_time = time.time()
+        print(f"Generation time: {synthesis_end_time - synthesis_start_time:.2f} seconds")
+
+        # End total timing
+        total_end_time = time.time()
+        print(f"Total time: {total_end_time - total_start_time:.2f} seconds")
+
+        ##########
 
         translator = Translate()
         # if the response is stil not the target language, translate using google translate
