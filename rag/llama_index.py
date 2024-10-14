@@ -26,7 +26,11 @@ import time
 class LLaMAIndexRAG(RAGInterface):
     def __init__(self):
         super().__init__()
-        Settings.llm = OpenAI(model="gpt-4", temperature=0.1)
+        Settings.llm = OpenAI(
+            model="gpt-4", 
+            temperature=0.1, 
+            # max_tokens=50
+        )  
         Settings.embed_model = OpenAIEmbedding() 
         
         # Load data
@@ -126,7 +130,7 @@ class LLaMAIndexRAG(RAGInterface):
             "{context_str}\n"
             "---------------------\n"
 
-            "根據以上信息，請回答以下問題\n"
+            "根據以上信息，請回答以下問題，不要超過50個字。\n"
             "如果答案不在以上信息中，請不要回答。\n"
 
             "問題：{query_str}\n"
