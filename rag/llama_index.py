@@ -125,21 +125,23 @@ class LLaMAIndexRAG(RAGInterface):
         # decode thw question dictionary and input the variable
         # NOTE: we can add an extra variable here
         qa_prompt_str = (
-            "以下是上下文信息。\n"
-            "---------------------\n"
-            "{context_str}\n"
-            "---------------------\n"
-
-            "根據以上信息，請回答以下問題，不要超過50個字。\n"
-            "如果答案不在以上信息中，請不要回答。\n"
-
-            "問題：{query_str}\n"
-
             f"你現在的身份是：{query_info['role']}\n"
             f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
             f"你的背景資訊是：{query_info['background']}\n"
             f"你回覆的語調是：{query_info['tone']}\n"
             f"你的回覆風格是：{query_info['style']}\n"
+
+            "你現在正在介紹一個博物館中，春秋戰國武器展區的資訊"
+
+            f"以下是{query_info['dynasty']}朝代展覽一些武器的信息。\n"
+            "---------------------\n"
+            "{context_str}\n"
+            "---------------------\n"
+
+            "根據以上信息與你的個人資訊，請回答以下問題，回答的內容不要超過50個字。\n"
+
+            "問題：{query_str}\n"
+
             # f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
 
             "回答："
