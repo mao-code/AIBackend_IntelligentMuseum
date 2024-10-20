@@ -124,29 +124,75 @@ class LLaMAIndexRAG(RAGInterface):
                 
         # decode thw question dictionary and input the variable
         # NOTE: we can add an extra variable here
-        qa_prompt_str = (
-            f"你現在的身份是：{query_info['role']}\n"
-            f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
-            f"你的背景資訊是：{query_info['background']}\n"
-            f"你回覆的語調是：{query_info['tone']}\n"
-            f"你的回覆風格是：{query_info['style']}\n"
 
-            "你現在正在介紹一個博物館中，春秋戰國武器展區的資訊"
+        qa_prompt_str = ""
+        if query_info['role'] == "博物館導覽員":
+            qa_prompt_str = (
+                f"你現在的身份是：{query_info['role']}\n"
+                f"你的背景資訊是：{query_info['background']}\n"
+                f"你回覆的語調是：{query_info['tone']}\n"
+                f"你的回覆風格是：{query_info['style']}\n"
 
-            f"以下是{query_info['dynasty']}朝代展覽一些武器的信息。\n"
-            "---------------------\n"
-            "{context_str}\n"
-            "---------------------\n"
+                "你現在正在介紹一個博物館中，所有相關資訊"
+                "例如：展覽資訊、展覽路線等等"
 
-            "根據以上信息與你的個人資訊，請回答以下問題。\n"
-            "回答的內容不要超過50個字。\n"
+                "以下是這個展覽的資訊："
+                "---------------------\n"
+                "這個展覽主要是三個中國古代的武器展，主要有三個朝代：春秋戰國、宋朝與明朝"
+                "三個展區各自有NPC，分別是：白起、岳飛與劉綎，每位NPC都會介紹各自朝代的武器"
+                "本展區使用混合實境與人工智慧技術，期望帶給觀展者全新的體驗並提升學習效果"
+                "---------------------\n"
 
-            "問題：{query_str}\n"
+                "以下是展覽路線：本展覽按照朝代成環形路線，分別是：春秋戰國、宋朝與明朝"
 
-            # f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
+                "以下是展覽的武器："
+                "---------------------\n"
+                "春秋戰國：秦國弓弩、吳王夫差矛、越王勾踐劍"
+                "宋朝：朴刀、毒藥菸球、神臂弓"
+                "明朝：雁翎刀、鐵殼地雷、鳥銃"
+                "---------------------\n"
 
-            "回答："
-        )
+                "以下是展覽時間：早上九點到下午五點"
+
+                "以下是可能相關的武器資訊，請斟酌參考："
+                "---------------------\n"
+                "{context_str}\n"
+                "---------------------\n"
+
+                "根據以上信息與你的個人資訊，請回答以下問題。\n"
+                "回答的內容不要超過50個字。\n"
+
+                "問題：{query_str}\n"
+
+                # f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
+
+                "回答："
+            )
+        else:
+            qa_prompt_str = (
+                f"你現在的身份是：{query_info['role']}\n"
+                f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
+                f"你的背景資訊是：{query_info['background']}\n"
+                f"你回覆的語調是：{query_info['tone']}\n"
+                f"你的回覆風格是：{query_info['style']}\n"
+
+                "你現在正在介紹一個博物館中，春秋戰國武器展區的資訊"
+
+                f"以下是{query_info['dynasty']}朝代展覽一些武器的信息。\n"
+                "---------------------\n"
+                "{context_str}\n"
+                "---------------------\n"
+
+                "根據以上信息與你的個人資訊，請回答以下問題。\n"
+                "回答的內容不要超過50個字。\n"
+
+                "問題：{query_str}\n"
+
+                # f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
+
+                "回答："
+            )
+
         qa_prompt_tmpl = PromptTemplate(qa_prompt_str)
         self.query_engine.update_prompts(
             {
