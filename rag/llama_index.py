@@ -18,10 +18,11 @@ from llama_index.core.postprocessor import SimilarityPostprocessor
 from llama_index.core import get_response_synthesizer, PromptTemplate
 
 import os
-
 from app.services.translate_service import Translate
-
 import time
+
+from .personality import get_personality_prompt
+import openai
 
 class LLaMAIndexRAG(RAGInterface):
     def __init__(self):
@@ -110,24 +111,23 @@ class LLaMAIndexRAG(RAGInterface):
             node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)],
         )
 
+        ##### For simple query LLM #####
+        self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        self.openai_client = openai.OpenAI(api_key=self.openai_api_key)
+
     def generate_response(self, question):
         pass
     
     def generate_response_with_retrieval(self, query_info):
-        # define prompt viewing function
-        # def display_prompt_dict(prompts_dict):
-        #     for k, p in prompts_dict.items():
-        #         text_md = f"**Prompt Key**: {k}<br>" f"**Text:** <br>"
-        #         print(text_md)
-        #         print(p.get_template())
-        #         print("\n")
-                
-        # decode thw question dictionary and input the variable
-        # NOTE: we can add an extra variable here
+        personality_type = query_info['personality']
+        personality_prompt = get_personality_prompt(personality_type)
+        is_rag = query_info['is_rag']
 
         qa_prompt_str = ""
         if query_info['role'] == "博物館導覽員":
             qa_prompt_str = (
+                f"{personality_prompt}"
+
                 f"你現在的身份是：{query_info['role']}\n"
                 f"你的背景資訊是：{query_info['background']}\n"
                 f"你回覆的語調是：{query_info['tone']}\n"
@@ -160,7 +160,7 @@ class LLaMAIndexRAG(RAGInterface):
                 "---------------------\n"
 
                 "根據以上信息與你的個人資訊，請回答以下問題。\n"
-                "回答的內容不要超過50個字。\n"
+                # "回答的內容不要超過50個字。\n"
 
                 "問題：{query_str}\n"
 
@@ -169,29 +169,50 @@ class LLaMAIndexRAG(RAGInterface):
                 "回答："
             )
         else:
-            qa_prompt_str = (
-                f"你現在的身份是：{query_info['role']}\n"
-                f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
-                f"你的背景資訊是：{query_info['background']}\n"
-                f"你回覆的語調是：{query_info['tone']}\n"
-                f"你的回覆風格是：{query_info['style']}\n"
+            if is_rag:
+                qa_prompt_str = (
+                    f"{personality_prompt}"
 
-                "你現在正在介紹一個博物館中，春秋戰國武器展區的資訊"
+                    f"你現在的身份是：{query_info['role']}\n"
+                    f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
+                    f"你的背景資訊是：{query_info['background']}\n"
+                    f"你回覆的語調是：{query_info['tone']}\n"
+                    f"你的回覆風格是：{query_info['style']}\n"
 
-                f"以下是{query_info['dynasty']}朝代展覽一些武器的信息。\n"
-                "---------------------\n"
-                "{context_str}\n"
-                "---------------------\n"
+                    "你現在正在介紹一個博物館中，春秋戰國武器展區的資訊"
 
-                "根據以上信息與你的個人資訊，請回答以下問題。\n"
-                "回答的內容不要超過50個字。\n"
+                    f"以下是{query_info['dynasty']}朝代展覽一些武器的信息。\n"
+                    "---------------------\n"
+                    "{context_str}\n"
+                    "---------------------\n"
 
-                "問題：{query_str}\n"
+                    "根據以上信息與你的個人資訊，請回答以下問題。\n"
+                    # "回答的內容不要超過50個字。\n"
 
-                # f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
+                    "問題：{query_str}\n"
 
-                "回答："
-            )
+                    # f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
+
+                    "回答："
+                )
+            else:
+                qa_prompt_str = (
+                    f"{personality_prompt}"
+
+                    f"你現在的身份是：{query_info['role']}\n"
+                    f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
+                    f"你的背景資訊是：{query_info['background']}\n"
+                    f"你回覆的語調是：{query_info['tone']}\n"
+                    f"你的回覆風格是：{query_info['style']}\n"
+
+                    "根據以上信息與你的個人資訊，請回答以下問題。\n"
+
+                    f"問題：{query_info['query']}\n"
+
+                    # f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
+
+                    "回答："
+                )
 
         qa_prompt_tmpl = PromptTemplate(qa_prompt_str)
         self.query_engine.update_prompts(
@@ -223,41 +244,68 @@ class LLaMAIndexRAG(RAGInterface):
             }
         )
 
-        # prompts_dict = self.query_engine.get_prompts()
-        # display_prompt_dict(prompts_dict)
-
-        # response = self.query_engine.query(query_info['query'])
-        # print("Response: ", response.response)
-        # print("Metadata: ", response.metadata)
-
-        ##### TIME ANALYSIS #####
         # Start total timing
         total_start_time = time.time()
 
         # Timing retrieval
-        retrieval_start_time = time.time()
-        retrieved_nodes = self.query_engine.retriever.retrieve(query_info['query'])
-        retrieval_end_time = time.time()
-        print(f"Retrieval time: {retrieval_end_time - retrieval_start_time:.2f} seconds")
+        if is_rag:
+            retrieval_start_time = time.time()
+            retrieved_nodes = self.query_engine.retriever.retrieve(query_info['query'])
+            retrieval_end_time = time.time()
+            print(f"Retrieval time: {retrieval_end_time - retrieval_start_time:.2f} seconds")
 
-        # Timing response synthesis
-        synthesis_start_time = time.time()
-        response = self.query_engine._response_synthesizer.synthesize(
-            query=query_info['query'],
-            nodes=retrieved_nodes
-        )
-        synthesis_end_time = time.time()
-        print(f"Generation time: {synthesis_end_time - synthesis_start_time:.2f} seconds")
+            synthesis_start_time = time.time()
+            response = self.query_engine._response_synthesizer.synthesize(
+                query=query_info['query'],
+                nodes=retrieved_nodes
+            )
+            synthesis_end_time = time.time()
+            print(f"Generation time: {synthesis_end_time - synthesis_start_time:.2f} seconds")
+        else:
+            # Query the LLM directly
+            generation_start_time = time.time()
+            print(qa_prompt_str)
+            try:        
+                response = self.openai_client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": qa_prompt_str
+                                }
+                            ],
+                        }
+                    ],
+                    model="gpt-4",
+                )
+            except Exception as e:
+                print(f"OpenAI API error: {e}")
+                return []
+
+            response_text = response.choices[0].message.content.strip()
+            response = {
+                "response": response_text,
+                "metadata": {}
+            }
+
+            generation_end_time = time.time()
+            print(f"Generation time: {generation_end_time - generation_start_time:.2f} seconds")
 
         # End total timing
         total_end_time = time.time()
         print(f"Total time: {total_end_time - total_start_time:.2f} seconds")
 
-        ##########
-
         translator = Translate()
+        response_text = response['response'] if not is_rag else response.response
+
         # if the response is stil not the target language, translate using google translate
-        if translator.detect_language(response.response) != query_info['target_lang_code']:
-            response.response = translator.translate(response.response, query_info['target_lang_code'])
+        if translator.detect_language(response_text) != query_info['target_lang_code']:
+            translated_response_text = translator.translate(response_text, query_info['target_lang_code'])
+            if is_rag:
+                response.response = translated_response_text
+            else:
+                response['response'] = translated_response_text
 
         return response

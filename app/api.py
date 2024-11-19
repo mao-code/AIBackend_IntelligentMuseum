@@ -30,6 +30,7 @@ def generate():
     data = request.json
     query = data.get('query', '')
     lang = data.get('lang', 'en')
+    personality = data.get("personality", "")
 
     if query.strip() == '':
         return jsonify({
@@ -64,7 +65,8 @@ def generate():
         'dynasty': dynasty,
         'background': background,
         'tone': tone,
-        'style': style
+        'style': style,
+        'personality': personality
     }
 
     ########## LLaMA Index RAG ##########
@@ -96,6 +98,8 @@ def npc_ask():
     query = data.get('query', '')
     lang = data.get('lang', 'en')
     npc_role = data.get('npc_role', '博物館導覽員')
+    personality = data.get("personality", "")
+    is_rag = data.get("is_rag", False)
 
     # Translate to Chinese and plug in target language to the prompt
     translator = Translate()
@@ -128,7 +132,9 @@ def npc_ask():
         'dynasty': dynasty,
         'background': background,
         'tone': tone,
-        'style': style
+        'style': style,
+        'personality': personality,
+        "is_rag": is_rag
     }
 
 
@@ -137,7 +143,11 @@ def npc_ask():
 
     rag = LLaMAIndexRAG()
     response = rag.generate_response_with_retrieval(query_info)
-    response_text, metadata = response.response, response.metadata
+
+    if is_rag:
+        response_text, metadata = response.response, response.metadata
+    else:
+        response_text, metadata = response["response"], response["metadata"]
 
     # End timing after the API call
     end_time = time.time()
