@@ -206,6 +206,7 @@ class LLaMAIndexRAG(RAGInterface):
                     f"你的回覆風格是：{query_info['style']}\n"
 
                     "根據以上信息與你的個人資訊，請回答以下問題。\n"
+                    "使用繁體中文、白話文。\n"
 
                     f"問題：{query_info['query']}\n"
 

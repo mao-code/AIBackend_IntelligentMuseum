@@ -99,7 +99,7 @@ def npc_ask():
     lang = data.get('lang', 'en')
     npc_role = data.get('npc_role', '博物館導覽員')
     personality = data.get("personality", "")
-    is_rag = data.get("is_rag", False)
+    is_rag = data.get("is_rag", True)
 
     # Translate to Chinese and plug in target language to the prompt
     translator = Translate()

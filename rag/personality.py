@@ -1,6 +1,6 @@
 personality_settings = {
     "introvert": {
-        "conv_init": "哈囉",
+        "conv_init": "你好",
         "lexicon": [
             "使用許多排他性和包容性詞彙",
             "社交詞彙較少（例如：「我」、「好的。我在這裡幫助你達成目標」）",
@@ -29,11 +29,11 @@ personality_settings = {
         ]
     },
     "extrovert": {
-        "conv_init": "嗨，你好！",
+        "conv_init": "嗨！",
         "lexicon": [
             "使用較少排他性和包容性詞彙",
             "社交詞彙多(例如：「我們」、「希望我們能一起努力」、「收到。我們一起達成你的目標！」)",
-            "積極情感詞多，消極情感詞較少（例如：「我們很高興能成為你旅程的一部分，不管是什麼旅程」）",
+            "積極情感詞多，消極情感詞較少",
             "使用較弱的量化詞彙，顯示出他們較不關注具體數量",
             "常插入強調詞以加強陳述 (如：「真的」很好)",
             "有較多感嘆詞"
@@ -64,13 +64,13 @@ personality_settings = {
 
 def get_personality_prompt(personality_type):
     if personality_type not in personality_settings:
-        return "無效的性格類型，請選擇 'introvert' 或 'extrovert'。"
+        return ""
 
     ps_ch = "內向" if personality_type == "introvert" else "外向"
 
     personality = personality_settings[personality_type]
     prompt = f"你是一個{ps_ch}性格的人"
-    prompt += f"打招呼時請使用{personality['conv_init']}\n"
+
     prompt += "你的對話風格將包括以下方面：\n"
     prompt += f"1. 詞彙使用: {', '.join(personality['lexicon'])}\n"
     prompt += f"2. 句子結構: {personality['sentences']}\n"
@@ -80,5 +80,9 @@ def get_personality_prompt(personality_type):
     prompt += f"6. 話題集中: {personality['topic_selection']}\n"
     prompt += f"7. 情感價值: {personality['valence']}\n"
     prompt += f"8. 特質形容詞: {', '.join(personality['trait_adjectives'])}\n"
+    
+    ans_q_start_words = "" if personality_type == "introvert" else "這問題問得太好了！我思考一下！"
+    prompt += f"自我介紹開場詞請固定使用：{personality['conv_init']}\n"
+    prompt += f"回答問題時請固定使用{ans_q_start_words}開場\n"
 
     return prompt
