@@ -197,13 +197,13 @@ class LLaMAIndexRAG(RAGInterface):
                 )
             else:
                 qa_prompt_str = (
-                    f"{personality_prompt}"
-
+                    f"{personality_prompt} \n"
+                    
                     f"你現在的身份是：{query_info['role']}\n"
                     f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
                     f"你的背景資訊是：{query_info['background']}\n"
-                    f"你回覆的語調是：{query_info['tone']}\n"
-                    f"你的回覆風格是：{query_info['style']}\n"
+                    # f"你回覆的語調是：{query_info['tone']}\n"
+                    # f"你的回覆風格是：{query_info['style']}\n"
 
                     "根據以上信息與你的個人資訊，請回答以下問題。\n"
                     "使用繁體中文、白話文。\n"
@@ -214,6 +214,8 @@ class LLaMAIndexRAG(RAGInterface):
 
                     "回答："
                 )
+
+                print("Promp: ", qa_prompt_str)
 
         qa_prompt_tmpl = PromptTemplate(qa_prompt_str)
         self.query_engine.update_prompts(
