@@ -24,6 +24,20 @@ import time
 from .personality import get_personality_prompt
 import openai
 
+import logging
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler('llama_index.log')
+file_handler.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+
 class LLaMAIndexRAG(RAGInterface):
     def __init__(self):
         super().__init__()
@@ -126,7 +140,7 @@ class LLaMAIndexRAG(RAGInterface):
         qa_prompt_str = ""
         if query_info['role'] == "博物館導覽員":
             qa_prompt_str = (
-                f"{personality_prompt}"
+                f"{personality_prompt} \n"
 
                 f"你現在的身份是：{query_info['role']}\n"
                 f"你的背景資訊是：{query_info['background']}\n"
@@ -171,34 +185,35 @@ class LLaMAIndexRAG(RAGInterface):
         else:
             if is_rag:
                 qa_prompt_str = (
-                    f"{personality_prompt}"
+                    "# 你的個性 \n"
+                    f"{personality_prompt} \n"
 
+                    "# 你的身份 \n"
                     f"你現在的身份是：{query_info['role']}\n"
                     f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
                     f"你的背景資訊是：{query_info['background']}\n"
-                    f"你回覆的語調是：{query_info['tone']}\n"
-                    f"你的回覆風格是：{query_info['style']}\n"
-
-                    "你現在正在介紹一個博物館中，春秋戰國武器展區的資訊"
-
+                    # f"你回覆的語調是：{query_info['tone']}\n"
+                    # f"你的回覆風格是：{query_info['style']}\n"
+                    "\n"
+                    "# 上下文資訊： \n"
                     f"以下是{query_info['dynasty']}朝代展覽一些武器的信息。\n"
                     "---------------------\n"
                     "{context_str}\n"
                     "---------------------\n"
 
                     "根據以上信息與你的個人資訊，請回答以下問題。\n"
-                    # "回答的內容不要超過50個字。\n"
+                    "\n"
+                    "# 問題： \n"
+                    "{query_str} \n"
 
-                    "問題：{query_str}\n"
-
-                    # f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
-
-                    "回答："
+                    f"請將你的回答翻譯成'{query_info['target_lang']}'\n"
+                    "\n"
+                    "# 回答： \n"
                 )
             else:
                 qa_prompt_str = (
                     f"{personality_prompt} \n"
-                    
+
                     f"你現在的身份是：{query_info['role']}\n"
                     f"你所身處的朝代是：{query_info['dynasty']} (請不要回答超過你朝代的問題或資訊)\n"
                     f"你的背景資訊是：{query_info['background']}\n"
@@ -214,8 +229,6 @@ class LLaMAIndexRAG(RAGInterface):
 
                     "回答："
                 )
-
-                print("Promp: ", qa_prompt_str)
 
         qa_prompt_tmpl = PromptTemplate(qa_prompt_str)
         self.query_engine.update_prompts(
@@ -250,12 +263,20 @@ class LLaMAIndexRAG(RAGInterface):
         # Start total timing
         total_start_time = time.time()
 
+        logger.info(f"Start of Processing "+"="*10)
         # Timing retrieval
         if is_rag:
             retrieval_start_time = time.time()
             retrieved_nodes = self.query_engine.retriever.retrieve(query_info['query'])
             retrieval_end_time = time.time()
-            print(f"Retrieval time: {retrieval_end_time - retrieval_start_time:.2f} seconds")
+
+            logger.info(f"User's Query: {query_info['query']}")
+            # From llamaindex's implementation
+            context_str = "\n\n".join([r.get_content() for r in retrieved_nodes])
+            synthesized_prompt = qa_prompt_str.format(
+                context_str=context_str, query_str=query_info['query']
+            )
+            logger.info(f"Synthesized Prompt:\n{synthesized_prompt}")
 
             synthesis_start_time = time.time()
             response = self.query_engine._response_synthesizer.synthesize(
@@ -263,11 +284,13 @@ class LLaMAIndexRAG(RAGInterface):
                 nodes=retrieved_nodes
             )
             synthesis_end_time = time.time()
-            print(f"Generation time: {synthesis_end_time - synthesis_start_time:.2f} seconds")
+
+            logger.info(f"LLM's Response:\n{response}")
+            logger.info(f"Retrieval time: {retrieval_end_time - retrieval_start_time:.2f} seconds")
+            logger.info(f"Generation time: {synthesis_end_time - synthesis_start_time:.2f} seconds")
         else:
             # Query the LLM directly
             generation_start_time = time.time()
-            print(qa_prompt_str)
             try:        
                 response = self.openai_client.chat.completions.create(
                     messages=[
@@ -298,7 +321,8 @@ class LLaMAIndexRAG(RAGInterface):
 
         # End total timing
         total_end_time = time.time()
-        print(f"Total time: {total_end_time - total_start_time:.2f} seconds")
+        logger.info(f"Total time: {total_end_time - total_start_time:.2f} seconds")
+        logger.info(f"End of Processing "+"="*10+"\n")
 
         translator = Translate()
         response_text = response['response'] if not is_rag else response.response

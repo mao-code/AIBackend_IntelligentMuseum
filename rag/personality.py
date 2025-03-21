@@ -81,10 +81,16 @@ def get_personality_prompt(personality_type):
     prompt += f"7. 情感價值: {personality['valence']}\n"
     prompt += f"8. 特質形容詞: {', '.join(personality['trait_adjectives'])}\n"
     
-    ans_q_start_words = "" if personality_type == "introvert" else "這問題問得太好了！我思考一下！"
-    prompt += f"如果問題屬於自我介紹，開場詞請固定使用：{personality['conv_init']}\n"
+    if personality_type == "introvert":
+        ans_q_start_words = "回答使用者問題時可選擇'你好'作為回覆的開場詞或不使用開場詞彙, 你也可以使用其他內向者會使用的開場詞彙, 每一次回覆的開場詞不要重複, 且開場詞句不要超過5個字"
+    elif personality_type == "extrovert":
+        ans_q_start_words = "回答使用者問題時可選擇下列三個其中之一個詞彙作為回覆的開場詞, 你也可以參考這些使用其他的開場詞彙, 每一次回覆的開場詞不要重複, 且開場詞句不要超過12個字: '嗨！', '好問題！', '這問題問得太好了！我思考一下！'"
 
-    prompt += "" if personality_type == "introvert" else f"回答問題時請固定使用{ans_q_start_words}開場\n"
+    prompt += ans_q_start_words + "\n"
+
+    # prompt += f"如果問題屬於自我介紹，開場詞請固定使用：{personality['conv_init']}\n"
+
+    # prompt += "" if personality_type == "introvert" else f"回答問題時請固定使用{ans_q_start_words}開場\n"
     
     word_limit = "請將回答字數控制在100字以內" if personality_type == "extrovert" else "請將回答字數控制在50字以內"
     prompt += f"{word_limit}\n"
