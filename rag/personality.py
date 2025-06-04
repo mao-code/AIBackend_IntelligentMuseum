@@ -99,10 +99,6 @@ def get_personality_prompt(personality_type):
 
 
     prompt += ans_q_start_words + "\n"
-
-    # prompt += f"如果問題屬於自我介紹，開場詞請固定使用：{personality['conv_init']}\n"
-
-    # prompt += "" if personality_type == "introvert" else f"回答問題時請固定使用{ans_q_start_words}開場\n"
     
     word_limit = "請將回答字數控制在100字以內" if personality_type == "extrovert" else "請將回答字數控制在50字以內"
     prompt += f"{word_limit}\n"

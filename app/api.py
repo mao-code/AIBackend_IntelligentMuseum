@@ -66,7 +66,8 @@ def generate():
         'background': background,
         'tone': tone,
         'style': style,
-        'personality': personality
+        'personality': personality,
+        'is_rag': True  # Default to RAG
     }
 
     ########## LLaMA Index RAG ##########
